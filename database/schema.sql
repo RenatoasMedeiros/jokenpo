@@ -2,11 +2,12 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Players Table
--- CREATE TABLE players (
---     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
---     email TEXT UNIQUE NOT NULL,
---     created_at TIMESTAMP DEFAULT now()
--- );
+CREATE TABLE players (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT now()
+);
 
 -- Games Table
 CREATE TABLE games (
@@ -17,3 +18,5 @@ CREATE TABLE games (
     player_2_choice TEXT CHECK (player_2_choice IN ('rock', 'paper', 'scissors')),
     winner UUID REFERENCES players(id)
 );
+
+

@@ -1,4 +1,4 @@
-module jokenpo
+module jokenpo/database
 
 go 1.24.1
 

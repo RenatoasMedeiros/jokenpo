@@ -35,7 +35,7 @@ func (p PlayerDB) CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 		RETURNING username
 	`
 
-	err := p.db.QueryRowContext(r.Context(), query, player.ID, player.Username, player.Password, player.CreatedAt).Scan(&player.Username)
+	err := p.db.QueryRowContext(r.Context(), query, player.ID, player.Username, player.Password).Scan(&player.Username)
 	if err != nil {
 		http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
 	}
@@ -45,15 +45,17 @@ func (p PlayerDB) CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(player.Username)
 }
 
-func LoginUser(w http.ResponseWriter, r *http.Request) {
+func (p PlayerDB) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var player models.Player
 	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
 		http.Error(w, "Invalid request body, error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Check player credentials
-	storedPlayer, err := GetPlayerById(w, r)
+	query := `SELECT id, username, password FROM players WHERE id = $1`
+
+	var storedPlayer models.Player
+	err := p.db.QueryRow(query, player.ID).Scan(&storedPlayer.ID, &storedPlayer.Username, &storedPlayer.Password)
 
 	if err != nil || bcrypt.CompareHashAndPassword([]byte(storedPlayer.Password), []byte(player.Password)) != nil {
 		http.Error(w, "Invalid Credentials", http.StatusUnauthorized)
@@ -91,15 +93,4 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonData)
-}
-
-func GetPlayerById(w http.ResponseWriter, r *http.Request) {
-	//Collect the ID
-
-	//Search on the db for a player with that id
-
-	// Return the player
-	// w.Header().Set("Content-Type", "application/json")
-	// json.NewEncoder(w).Encode(player)
-	return
 }

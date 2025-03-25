@@ -1,8 +1,10 @@
 services:
-  pqsql:
+  pgsql:
     image: postgres
     container_name: postgres_jokenpo
     restart: always
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -19,4 +21,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    
+  
+  backend:
+    build:
+      # this need to be like this, to have access to both backend and database and not only "./backend"
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    environment:
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+    depends_on:
+      pgsql:
+        condition: service_healthy

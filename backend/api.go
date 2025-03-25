@@ -1,4 +1,4 @@
-package backend
+package main
 
 import (
 	handlers "jokenpo/backend/handlers"

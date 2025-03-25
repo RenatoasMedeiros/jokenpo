@@ -13,12 +13,16 @@ var JWT_KET = []byte(os.Getenv("JWT_KEY"))
 
 func Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		/*
+			This paths can be reached without the need of a token
+		*/
 		publicPaths := []string{
 			"/auth/register/",
 			"/auth/login/",
 		}
 
 		for _, path := range publicPaths {
+			//Verifying if the url have someting from the publicPaths
 			if strings.HasPrefix(r.URL.Path, path) {
 				next.ServeHTTP(w, r)
 				return
@@ -33,11 +37,12 @@ func Authenticate(next http.Handler) http.Handler {
 
 		// Parse the JWT token using StandardClaims
 		claims := &jwt.StandardClaims{}
+
+		//The func is to validate the token with our secret key
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return JWT_KET, nil
 		})
 
-		// Log token parsing details for debugging
 		if err != nil {
 			log.Printf("Error parsing token: %v", err)
 			http.Error(w, "Invalid token", http.StatusUnauthorized)

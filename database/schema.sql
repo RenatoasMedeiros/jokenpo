@@ -12,8 +12,8 @@ CREATE TABLE players (
 -- Games Table
 CREATE TABLE games (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    player_1 UUID REFERENCES players(id) NOT NULL,
-    player_2 UUID REFERENCES players(id) NOT NULL,
+    player_1 UUID REFERENCES players(id),
+    player_2 UUID REFERENCES players(id),
     player_1_choice TEXT CHECK (player_1_choice IN ('rock', 'paper', 'scissors')),
     player_2_choice TEXT CHECK (player_2_choice IN ('rock', 'paper', 'scissors')),
     winner UUID REFERENCES players(id)

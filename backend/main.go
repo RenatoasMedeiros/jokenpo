@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"os"
 )
 
 func main() {
-	// database.InitDB()
-	// //Close it when it is not used
-	// defer database.CloseDB()
-
-	// db := database.GetDB()
-	fmt.Println("Using database...")
+	app := &api{
+		config: config{
+			addr: ":" + os.Getenv("BACKEND_PORT"),
+		},
+	}
+	app.run()
 }

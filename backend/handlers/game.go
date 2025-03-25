@@ -13,7 +13,6 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	//Generate UUID for the room
 	gameID := uuid.NewString()
 	//Comunicate with the web socket to create a room with that ID
-
 	fmt.Println(w, "Game Created here is the id: %s ", gameID)
 }
 

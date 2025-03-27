@@ -17,8 +17,8 @@ func Authenticate(next http.Handler) http.Handler {
 			This paths can be reached without the need of a token
 		*/
 		publicPaths := []string{
-			"/auth/register/",
-			"/auth/login/",
+			"/auth/register",
+			"/auth/login",
 		}
 
 		for _, path := range publicPaths {

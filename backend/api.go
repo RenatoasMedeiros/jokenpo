@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	handlers "jokenpo/backend/handlers"
+	middlewares "jokenpo/backend/middlewares"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -22,6 +23,7 @@ func (api *api) run() error {
 	r.HandleFunc("/join/{id}", handlers.JoinRoomHandler)
 	r.HandleFunc("/auth/login", handlers.LoginPlayer)
 	r.HandleFunc("/auth/register", handlers.CreatePlayerAccount)
+	r.Use(middlewares.Authenticate)
 	// r.HandleFunc("/finishGame", EndGameHandler)
 
 	srv := &http.Server{

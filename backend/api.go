@@ -20,6 +20,8 @@ func (api *api) run() error {
 	r := mux.NewRouter()
 	r.HandleFunc("/room", handlers.CreateRoomHandler)
 	r.HandleFunc("/join/{id}", handlers.JoinRoomHandler)
+	r.HandleFunc("/auth/login", handlers.LoginPlayer)
+	r.HandleFunc("/auth/register", handlers.CreatePlayerAccount)
 	// r.HandleFunc("/finishGame", EndGameHandler)
 
 	srv := &http.Server{

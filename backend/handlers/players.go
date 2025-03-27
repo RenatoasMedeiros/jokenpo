@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
+	"fmt"
 	"jokenpo/backend/models"
+	"jokenpo/database"
 	"net/http"
 	"os"
 	"time"
@@ -13,49 +14,59 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type PlayerDB struct {
-	db *sql.DB
-}
-
 var JWT_KET = []byte(os.Getenv("JWT_KEY"))
 
-func (p PlayerDB) CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
+func CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 	var player models.Player
-
 	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
 		http.Error(w, "Invalid request body, error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println("Player collected", player)
+
+	db := database.GetDB()
+
 	// create the user:
 	if player.ID == uuid.Nil {
 		player.ID = uuid.New()
 	}
+	fmt.Println("Final player before go to the database", player)
 	query := `
-		INSERT INTO players (id, username, password) VALUES ($1, $2, $3, $4)
-		RETURNING username
+		INSERT INTO players (id, username, password) VALUES ($1, $2, $3) RETURNING username
 	`
+	fmt.Println("Arrived here")
 
-	err := p.db.QueryRowContext(r.Context(), query, player.ID, player.Username, player.Password).Scan(&player.Username)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(player.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error on database, unable to proper validate the password"+err.Error(), http.StatusInternalServerError)
 	}
 
+	err = db.QueryRowContext(r.Context(), query, player.ID, player.Username, hashedPassword).Scan(&player.Username)
+	if err != nil {
+		http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("And here Arrived here")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(player.Username)
 }
 
-func (p PlayerDB) LoginUser(w http.ResponseWriter, r *http.Request) {
+func LoginPlayer(w http.ResponseWriter, r *http.Request) {
 	var player models.Player
 	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
 		http.Error(w, "Invalid request body, error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("Player received", player)
+	db := database.GetDB()
 
-	query := `SELECT id, username, password FROM players WHERE id = $1`
+	query := `SELECT id, username, password FROM players WHERE username = $1`
 
 	var storedPlayer models.Player
-	err := p.db.QueryRow(query, player.ID).Scan(&storedPlayer.ID, &storedPlayer.Username, &storedPlayer.Password)
+	err := db.QueryRow(query, player.Username).Scan(&storedPlayer.ID, &storedPlayer.Username, &storedPlayer.Password)
+	fmt.Println("StoredPlayer received", storedPlayer)
 
 	if err != nil || bcrypt.CompareHashAndPassword([]byte(storedPlayer.Password), []byte(player.Password)) != nil {
 		http.Error(w, "Invalid Credentials", http.StatusUnauthorized)

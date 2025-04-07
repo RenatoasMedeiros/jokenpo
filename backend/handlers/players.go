@@ -33,7 +33,7 @@ func CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("Final player before go to the database", player)
 	query := `
-		INSERT INTO players (id, username, password) VALUES ($1, $2, $3) RETURNING username
+		INSERT INTO players (id, username, password) VALUES ($1, $2, $3) RETURNING id
 	`
 	fmt.Println("Arrived here")
 
@@ -42,7 +42,7 @@ func CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error on database, unable to proper validate the password"+err.Error(), http.StatusInternalServerError)
 	}
 
-	err = db.QueryRowContext(r.Context(), query, player.ID, player.Username, hashedPassword).Scan(&player.Username)
+	err = db.QueryRowContext(r.Context(), query, player.ID, player.Username, hashedPassword).Scan(&player.ID)
 	if err != nil {
 		http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -50,7 +50,7 @@ func CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("And here Arrived here")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(player.Username)
+	json.NewEncoder(w).Encode(player.ID)
 }
 
 func LoginPlayer(w http.ResponseWriter, r *http.Request) {

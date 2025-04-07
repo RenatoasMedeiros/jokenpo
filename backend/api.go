@@ -19,10 +19,11 @@ type config struct {
 
 func (api *api) run() error {
 	r := mux.NewRouter()
-	r.HandleFunc("/room", handlers.CreateRoomHandler)
-	r.HandleFunc("/join/{id}", handlers.JoinRoomHandler)
-	r.HandleFunc("/auth/login", handlers.LoginPlayer)
-	r.HandleFunc("/auth/register", handlers.CreatePlayerAccount)
+	r.HandleFunc("/room", handlers.CreateRoomHandler).Methods("POST")
+	r.HandleFunc("/join/{id}", handlers.JoinRoomHandler).Methods("PUT")
+	r.HandleFunc("/endgame/{id}", handlers.EndGameHandler).Methods("POST")
+	r.HandleFunc("/auth/login", handlers.LoginPlayer).Methods("POST")
+	r.HandleFunc("/auth/register", handlers.CreatePlayerAccount).Methods("POST")
 	r.Use(middlewares.Authenticate)
 	// r.HandleFunc("/finishGame", EndGameHandler)
 

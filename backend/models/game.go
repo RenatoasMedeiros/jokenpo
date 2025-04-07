@@ -8,5 +8,12 @@ type Games struct {
 	Player2       uuid.UUID `json:player_2`
 	Player1Choice string    `json:player_1_choice`
 	Player2Choice string    `json:player_2_choice`
-	winner        uuid.UUID `json:winner`
+	Winner        uuid.UUID `json:winner`
+}
+
+type GameInput struct {
+	Player1       string `json:"player_1"`
+	Player2       string `json:"player_2"`
+	Player1Choice string `json:"player_1_choice"`
+	Player2Choice string `json:"player_2_choice"`
 }

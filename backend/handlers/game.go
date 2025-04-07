@@ -47,20 +47,12 @@ func EndGameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var game models.Games
-	game = models.Games{
+	game := models.Games{
 		Player1:       player1UUID,
 		Player2:       player2UUID,
 		Player1Choice: input.Player1Choice,
 		Player2Choice: input.Player2Choice,
 	}
-
-	//Problema, ele não está a atribuir as strings UUID em UUID (porque vêm como string)
-	fmt.Println()
-	fmt.Println("Game Player1\n\n\n\n", game.Player1)
-	fmt.Println("Game Player2", game.Player2)
-	fmt.Println("Game Player1Choice", game.Player1Choice)
-	fmt.Println("Game Player2Choice", game.Player2Choice)
 
 	db := database.GetDB()
 

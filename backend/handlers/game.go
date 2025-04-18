@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"jokenpo/backend/models"
+	"jokenpo/backend/websocket"
 	"jokenpo/database"
 	"net/http"
 
@@ -12,17 +13,63 @@ import (
 )
 
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
 	//Generate UUID for the room
 	gameID := uuid.NewString()
+
+	room := &websocket.Room{
+		ID: gameID,
+		/*
+			Maps need to be initialized before used, thats why we need the make
+			The key, is a pointer to a Client (single player connection, the bool represents if they are (or not) in the room
+		*/
+		Clients: make(map[*websocket.Client]bool),
+		//We use channels to protect from race conditions!
+		Broadcast:  make(chan websocket.Message),
+		Register:   make(chan *websocket.Client),
+		Unregister: make(chan *websocket.Client),
+	}
+	//Go routine
+	go room.Run()
+
+	//this Rooms is a global map to keep track of all active rooms
+	websocket.Rooms[gameID] = room
+
+	w.WriteHeader(http.StatusCreated)
 	//Comunicate with the web socket to create a room with that ID
 	fmt.Println(w, "Game Created here is the id: %s ", gameID)
 }
 
 func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+
+	type playerJoinGame struct {
+		PlayerID string `json:"player_id"`
+		GameID   string `json:"game_id"`
+	}
+	var playerToJoinGame playerJoinGame
+
+	if err := json.NewDecoder(r.Body).Decode(&playerToJoinGame); err != nil {
+		http.Error(w, "Invalid Player ID:"+err.Error(), http.StatusBadRequest)
+	}
+
+	//Now is needed to upgrade from HTTP -> WS
+	conn, err := websocket.Upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		return
+	}
+
+	room := websocket.Rooms[playerToJoinGame.GameID]
+
+	//Create the client:
+	client := &websocket.Client{
+		Conn: conn,
+		Room: room,
+		Send: make(chan websocket.Message),
+	}
+	room.Register <- client
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Println(w, "Player %s joined the room %s", vars["username"], vars["gameId"])
+	fmt.Println(w, "Player %s joined the room %s", playerToJoinGame.PlayerID, playerToJoinGame.GameID)
 }
 
 func EndGameHandler(w http.ResponseWriter, r *http.Request) {

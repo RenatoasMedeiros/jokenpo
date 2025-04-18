@@ -61,15 +61,25 @@ func EndGameHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid id, error: "+err.Error(), http.StatusBadRequest)
 	}
 
-	if game.Player1Choice == "rock" && game.Player2Choice != "paper" {
-		game.Winner = game.Player1
-	} else {
-		game.Winner = game.Player2
-	}
-	if game.Player1Choice == "scissors" && game.Player2Choice != "rock" {
-		game.Winner = game.Player1
-	} else {
-		game.Winner = game.Player2
+	switch game.Player1Choice {
+	case "rock":
+		if game.Player2Choice == "scissors" {
+			game.Winner = game.Player1
+		} else {
+			game.Winner = game.Player2
+		}
+	case "paper":
+		if game.Player2Choice == "rock" {
+			game.Winner = game.Player1
+		} else {
+			game.Winner = game.Player2
+		}
+	case "scissors":
+		if game.Player2Choice == "paper" {
+			game.Winner = game.Player1
+		} else {
+			game.Winner = game.Player2
+		}
 	}
 
 	query := `

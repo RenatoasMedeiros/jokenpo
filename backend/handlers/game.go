@@ -34,22 +34,15 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	//this Rooms is a global map to keep track of all active rooms
 	websocket.Rooms[gameID] = room
 
-	w.WriteHeader(http.StatusCreated)
 	//Comunicate with the web socket to create a room with that ID
 	fmt.Println(w, "Game Created here is the id: %s ", gameID)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(gameID)
 }
 
 func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
-
-	type playerJoinGame struct {
-		PlayerID string `json:"player_id"`
-		GameID   string `json:"game_id"`
-	}
-	var playerToJoinGame playerJoinGame
-
-	if err := json.NewDecoder(r.Body).Decode(&playerToJoinGame); err != nil {
-		http.Error(w, "Invalid Player ID:"+err.Error(), http.StatusBadRequest)
-	}
+	gameID := mux.Vars(r)["room_id"]
 
 	//Now is needed to upgrade from HTTP -> WS
 	conn, err := websocket.Upgrader.Upgrade(w, r, nil)
@@ -57,8 +50,12 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 		return
 	}
-
-	room := websocket.Rooms[playerToJoinGame.GameID]
+	fmt.Println("Arrived here1")
+	room, ok := websocket.Rooms[gameID]
+	if !ok {
+		http.Error(w, "Room not found", http.StatusNotFound)
+		return
+	}
 
 	//Create the client:
 	client := &websocket.Client{
@@ -66,10 +63,14 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		Room: room,
 		Send: make(chan websocket.Message),
 	}
-	room.Register <- client
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Println(w, "Player %s joined the room %s", playerToJoinGame.PlayerID, playerToJoinGame.GameID)
+	//Actually register the client on the room
+	room.Register <- client
+	fmt.Println("Arrived here2")
+	go client.ReadPump()
+	go client.WritePump()
+
+	fmt.Printf("Client connected to room %s\n", gameID)
 }
 
 func EndGameHandler(w http.ResponseWriter, r *http.Request) {

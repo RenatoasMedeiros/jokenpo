@@ -27,6 +27,7 @@ services:
       # this need to be like this, to have access to both backend and database and not only "./backend"
       context: .
       dockerfile: backend/Dockerfile
+    image: 2240596.azurecr.io/jokenpo-backend
     env_file:
       - .env
     ports:

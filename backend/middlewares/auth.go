@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,15 +20,18 @@ func Authenticate(next http.Handler) http.Handler {
 		publicPaths := []string{
 			"/auth/register",
 			"/auth/login",
+			"/join/", //TODO find a way to fix this
 		}
 
 		for _, path := range publicPaths {
+			fmt.Println("Verifying path")
 			//Verifying if the url have someting from the publicPaths
 			if strings.HasPrefix(r.URL.Path, path) {
 				next.ServeHTTP(w, r)
 				return
 			}
 		}
+		fmt.Println("Valid Path")
 		// Extract token from the Authorization header
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {

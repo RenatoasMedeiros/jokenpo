@@ -11,7 +11,9 @@ import (
 
 var db *sql.DB
 
-/*	The functions are captalized making them PUBLIC (and passible to be exported) thats important 
+/*
+	The functions are captalized making them PUBLIC (and passible to be exported) thats important
+
 since we are with 2 different go projects (on on the backend an another one on the database and in
 the future another one on the websocket)
 */
@@ -31,6 +33,9 @@ func InitDB() {
 		err = db.Ping()
 		if err == nil {
 			fmt.Println("Successfully connected to the database")
+			return
+		} else {
+			fmt.Println("Error connecting to the database")
 			return
 		}
 	}

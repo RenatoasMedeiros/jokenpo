@@ -19,4 +19,12 @@ CREATE TABLE games (
     winner UUID REFERENCES players(id)
 );
 
+CREATE TABLE rooms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    player_1 UUID REFERENCES players(id),
+    player_2 UUID REFERENCES players(id),
+    status TEXT CHECK (status IN ('waiting', 'full', 'finished')) NOT NULL DEFAULT 'waiting',
+    created_at TIMESTAMP DEFAULT now()
+);
+
 

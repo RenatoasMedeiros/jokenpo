@@ -1,14 +1,19 @@
 package websocket
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // i have copied this structure and the run() from https://github.com/gorilla/websocket/blob/main/examples/chat/hub.go
 type Room struct {
-	ID         string
+	ID         uuid.UUID
 	Clients    map[*Client]bool
 	Broadcast  chan Message
 	Register   chan *Client
 	Unregister chan *Client
+	Moves      map[uuid.UUID]string //map[clientid]move
 }
 
 func (r *Room) Run() {

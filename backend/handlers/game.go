@@ -34,6 +34,17 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	//this Rooms is a global map to keep track of all active rooms
 	websocket.Rooms[gameID] = room
 
+	//save the room on the database
+	db := database.GetDB()
+	query := `
+		INSERT INTO rooms (id) VALUES ($1)
+	`
+	err := db.QueryRowContext(r.Context(), query, gameID)
+	if err != nil {
+		http.Error(w, "Error on the database (Joining the Room), error: "+err.Err().Error(), http.StatusInternalServerError)
+		return
+	}
+
 	//Comunicate with the web socket to create a room with that ID
 	fmt.Println(w, "Game Created here is the id: %s ", gameID)
 	w.Header().Set("Content-Type", "application/json")
@@ -50,15 +61,49 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("Arrived here1")
 	room, ok := websocket.Rooms[gameID]
 	if !ok {
 		http.Error(w, "Room not found", http.StatusNotFound)
 		return
 	}
 
+	// Wait for the client to send the first message (join)
+	var firstMsg websocket.Message
+	err = conn.ReadJSON(&firstMsg)
+	if err != nil {
+		http.Error(w, "Could not read join message", http.StatusBadRequest)
+		conn.Close()
+		return
+	}
+
+	var playerID uuid.UUID
+
+	playerID, err = uuid.Parse(firstMsg.Sender)
+	if err != nil {
+		http.Error(w, "Error converting playerId to UUID", http.StatusBadRequest)
+		conn.close()
+		return
+	}
+
+	//Update the room on the database
+	db := database.GetDB()
+
+	query := `
+		UPDATE rooms
+		SET
+			player1 = CASE WHEN player1 IS NULL OR player1 = '' THEN $2 ELSE player1 END,
+			player2 = CASE WHEN player1 IS NOT NULL AND player1 <> '' THEN $2 ELSE player2 END
+		WHERE id = $1;
+	`
+	_, err = db.ExecContext(r.Context(), query, gameID, playerID)
+	if err != nil {
+		http.Error(w, "Error on the database (Joining the Room), error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	//Create the client:
 	client := &websocket.Client{
+		ID:   playerID,
 		Conn: conn,
 		Room: room,
 		Send: make(chan websocket.Message),
@@ -66,7 +111,7 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Actually register the client on the room
 	room.Register <- client
-	fmt.Println("Arrived here2")
+
 	go client.ReadPump()
 	go client.WritePump()
 
@@ -139,7 +184,13 @@ func EndGameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := struct {
+		Winner uuid.UUID `json:"winner"`
+	}{
+		Winner: game.Winner,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(game.Winner)
+	json.NewEncoder(w).Encode(response)
 }

@@ -3,11 +3,12 @@ package websocket
 import (
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 // this rooms are global because it must be visible by both backend handlers and websocket code
-var Rooms = make(map[string]*Room)
+var Rooms = make(map[uuid.UUID]*Room)
 
 var Upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,

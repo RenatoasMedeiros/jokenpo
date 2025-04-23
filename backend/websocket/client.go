@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"jokenpo/backend/models"
 	"jokenpo/database"
@@ -19,6 +20,11 @@ type Client struct {
 	Send chan Message // Channel to send messages to this client
 }
 
+type MovePayload struct {
+	GameID string `json:"game_id"`
+	Move   string `json:"move"`
+}
+
 // constantly listens if the client sends something.
 func (c *Client) ReadPump() {
 	defer func() {
@@ -34,32 +40,52 @@ func (c *Client) ReadPump() {
 		}
 		// When the player sends the move
 		fmt.Println("msg.type", msg.Type)
+		fmt.Println("WHOLE MESSAGE:", msg)
 		// if msg.Type == "move" || msg.Type == "join" || msg.Type == "result" {
 		// 	c.Room.Broadcast <- msg
 		// }
 		switch msg.Type {
 		case "move":
 			// Save the move for this player
-			c.Room.Moves[c.ID] = msg.Body
+			fmt.Println("MOVE DETECTED - Client", c)
+			fmt.Println("msg.Body", msg.Body)
+
+			var movePayload MovePayload
+			err := json.Unmarshal([]byte(msg.Body), &movePayload)
+			if err != nil {
+				fmt.Println("Error parsing move payload:", err)
+				return
+			}
+
+			// Now you can safely use:
+			fmt.Println("Move:", movePayload.Move)
+			fmt.Println("Game ID:", movePayload.GameID)
+			c.Room.Moves[uuid.MustParse(msg.Sender)] = movePayload.Move
+			fmt.Println("MOVE DETECTED - c.Room.Moves", c.Room.Moves)
 
 			var player1ID, player2ID uuid.UUID
 			i := 0
 			// Check if both players moved
+			fmt.Println("len c.Room.Moves", len(c.Room.Moves))
 			if len(c.Room.Moves) == 2 {
 				playerChoices := make([]string, 0, 2)
 				for id, choice := range c.Room.Moves {
 					playerChoices = append(playerChoices, choice)
+					fmt.Println("Choices", choice)
 					if i == 0 {
 						player1ID = id
+						fmt.Println("Player1ID", player1ID)
 					} else {
+						fmt.Println("player2ID", player2ID)
 						player2ID = id
 					}
+					fmt.Println("DENTRO NO LOOP I", i)
 					i++
 				}
 
 				// Calculate winner
 				winner := determineWinner(playerChoices[0], playerChoices[1])
-
+				fmt.Println("WINNER", winner)
 				// Broadcast winner
 				resultMsg := Message{
 					Type: "result",

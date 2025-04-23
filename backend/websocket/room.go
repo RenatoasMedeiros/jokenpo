@@ -18,31 +18,35 @@ type Room struct {
 
 func (r *Room) Run() {
 	numClients := 0
+	fmt.Println("Inside the Run Function, numClients ", numClients)
 	for {
+		fmt.Println("Inside the FOR Run Function")
 		//select here since we have multiple options to interact with the Room
 		select {
-		case client := <-r.Register:
+		case Client := <-r.Register:
 			if numClients < 2 {
-				r.Clients[client] = true
+				fmt.Println("Inside the RUN Function - Select r.Register, client: ", Client)
+				r.Clients[Client] = true
 				numClients++
-				fmt.Println("Register Client:", client)
+				fmt.Println("Register Client:", Client)
 				fmt.Println("Total of Clients", numClients)
 			}
 
-		case client := <-r.Unregister:
-			if _, ok := r.Clients[client]; ok {
-				delete(r.Clients, client)
-				close(client.Send)
-				fmt.Println("UnRegister Client:", client)
+		case Client := <-r.Unregister:
+			fmt.Println("Inside the RUN Function - Select r.UnRegister, Client: ", Client)
+			if _, ok := r.Clients[Client]; ok {
+				delete(r.Clients, Client)
+				close(Client.Send)
+				fmt.Println("UnRegister Client:", Client)
 			}
 		case message := <-r.Broadcast:
 			fmt.Printf("Broadcast Message %+v\n:", message)
-			for client := range r.Clients {
+			for Client := range r.Clients {
 				select {
-				case client.Send <- message:
+				case Client.Send <- message:
 				default:
-					close(client.Send)
-					delete(r.Clients, client)
+					close(Client.Send)
+					delete(r.Clients, Client)
 					fmt.Println("Client removed due to unresponsiveness.")
 
 				}

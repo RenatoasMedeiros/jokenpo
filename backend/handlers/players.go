@@ -89,9 +89,11 @@ func LoginPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := struct {
-		Token string `json:"token"`
+		Token    string `json:"token"`
+		PlayerId string `json:"playerId"`
 	}{
-		Token: tokenString,
+		Token:    tokenString,
+		PlayerId: storedPlayer.ID.String(),
 	}
 
 	// Marshal the struct into JSON

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
@@ -17,29 +18,43 @@ var db *sql.DB
 since we are with 2 different go projects (on on the backend an another one on the database and in
 the future another one on the websocket)
 */
+
 func InitDB() {
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
+	serviceURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
+		os.Getenv("DB_SSL"),
 	)
+
 	fmt.Println("Waiting for the database Startup")
 
+	conn, _ := url.Parse(serviceURI)
+	conn.RawQuery = "sslmode=verify-ca;sslrootcert=ca.pem"
+
 	var err error
-	db, err = sql.Open("postgres", connStr)
+	db, err = sql.Open("postgres", conn.String())
+
 	if err != nil {
-		err = db.Ping()
-		if err == nil {
-			fmt.Println("Successfully connected to the database")
-			return
-		} else {
-			fmt.Println("Error connecting to the database")
-			return
-		}
+		log.Fatal(err)
 	}
-	fmt.Println("Successfully connected to the database")
+	// defer db.Close()
+
+	rows, err := db.Query("SELECT version()")
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var result string
+		err = rows.Scan(&result)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Version: %s\n", result)
+	}
 }
 
 func GetDB() *sql.DB {

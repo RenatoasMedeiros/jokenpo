@@ -1,26 +1,29 @@
 services:
-  pgsql:
-    image: postgres
-    container_name: postgres_jokenpo
-    restart: always
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    ports:
-      - ${DB_PORT}:${DB_PORT}
-    volumes:
-      # copy the scnema.sql script to entrypoint (any .sql script inside the entrypoint is executred on first run)
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-      # copy the sql script to fill tables - when you have it!
-      #- ./database/fill_tables.sql:/docker-entrypoint-initdb.d/fill_tables.sql
-    healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USER}'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # pgsql:
+  #   image: postgres
+  #   container_name: postgres_jokenpo
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     POSTGRES_USER: ${DB_USER}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     POSTGRES_DB: ${DB_NAME}
+  #   ports:
+  #     - ${DB_PORT}:${DB_PORT}
+  #   dns:
+  #     - 8.8.8.8
+  #     - 8.8.4.4
+    # volumes:
+    #   # copy the scnema.sql script to entrypoint (any .sql script inside the entrypoint is executred on first run)
+    #   - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    #   # copy the sql script to fill tables - when you have it!
+    #   #- ./database/fill_tables.sql:/docker-entrypoint-initdb.d/fill_tables.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USER}'"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
   
   backend:
     build:
@@ -28,6 +31,10 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     image: 2240596.azurecr.io/jokenpo-backend
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    #network_mode: "host" #just for linux
     env_file:
       - .env
     ports:
@@ -38,6 +45,7 @@ services:
       DB_USER: "${DB_USER}"
       DB_PASSWORD: "${DB_PASSWORD}"
       DB_NAME: "${DB_NAME}"
-    depends_on:
-      pgsql:
-        condition: service_healthy
+      DB_SSL: "${DB_SSL}"
+    # depends_on:
+    #   pgsql:
+    #     condition: service_healthy

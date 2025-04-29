@@ -64,49 +64,48 @@ func (c *Client) ReadPump() {
 			c.Room.Moves[uuid.MustParse(msg.Sender)] = movePayload.Move
 			fmt.Println("MOVE DETECTED - c.Room.Moves", c.Room.Moves)
 
-			var player1ID, player2ID uuid.UUID
-			i := 0
-			// Check if both players moved
-			fmt.Println("len c.Room.Moves", len(c.Room.Moves))
-			if len(c.Room.Moves) == 2 {
-				playerChoices := make([]string, 0, 2)
-				for id, choice := range c.Room.Moves {
-					playerChoices = append(playerChoices, choice)
-					fmt.Println("Choices", choice)
-					if i == 0 {
-						player1ID = id
-						fmt.Println("Player1ID", player1ID)
-					} else {
-						fmt.Println("player2ID", player2ID)
-						player2ID = id
-					}
-					fmt.Println("DENTRO NO LOOP I", i)
-					i++
-				}
+			// var player1ID, player2ID uuid.UUID
+			// i := 0
+			// // Check if both players moved
+			// fmt.Println("len c.Room.Moves", len(c.Room.Moves))
+			// if len(c.Room.Moves) == 2 {
+			// 	playerChoices := make([]string, 0, 2)
+			// 	for id, choice := range c.Room.Moves {
+			// 		playerChoices = append(playerChoices, choice)
+			// 		fmt.Println("Choices", choice)
+			// 		if i == 0 {
+			// 			player1ID = id
+			// 			fmt.Println("Player1ID", player1ID)
+			// 		} else {
+			// 			fmt.Println("player2ID", player2ID)
+			// 			player2ID = id
+			// 		}
+			// 		fmt.Println("DENTRO NO LOOP I", i)
+			// 		i++
+			// 	}
 
-				// Calculate winner
-				winner, winnerId := determineWinner(playerChoices[0], player1ID, playerChoices[1], player2ID)
-				fmt.Println("WINNER", winner)
+			// 	// Calculate winner
+			// 	winner, winnerId := DetermineWinner(playerChoices[0], player1ID, playerChoices[1], player2ID)
+			// 	fmt.Println("WINNER", winner)
 
-				if winner != "draw" {
-					// Broadcast winner
-					resultMsg := Message{
-						Type: "result",
-						Body: winnerId.String(),
-					}
-					c.Room.Broadcast <- resultMsg
-				} else {
-					// Broadcast winner
-					resultMsg := Message{
-						Type: "result",
-						Body: winner,
-					}
-					c.Room.Broadcast <- resultMsg
-				}
+			// 	if winner != "draw" {
+			// 		// Broadcast winner
+			// 		resultMsg := Message{
+			// 			Type: "result",
+			// 			Body: winnerId.String(),
+			// 		}
+			// 		c.Room.Broadcast <- resultMsg
+			// 	} else {
+			// 		// Broadcast winner
+			// 		resultMsg := Message{
+			// 			Type: "result",
+			// 			Body: winner,
+			// 		}
+			// 		c.Room.Broadcast <- resultMsg
+			// 	}
 
-				// Save into DB (optional)
-				saveGameResultToDB(player1ID, player2ID, *c.Room)
-			}
+			// 	saveGameResultToDB(player1ID, player2ID, *c.Room)
+			// }
 		}
 	}
 }
@@ -136,7 +135,7 @@ func (c *Client) WritePump() {
 	}
 }
 
-func determineWinner(player1Move string, player1ID uuid.UUID, player2Move string, player2ID uuid.UUID) (string, uuid.UUID) {
+func DetermineWinner(player1Move string, player1ID uuid.UUID, player2Move string, player2ID uuid.UUID) (string, uuid.UUID) {
 	if player1Move == player2Move {
 		return "draw", uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 	}
@@ -158,7 +157,7 @@ func determineWinner(player1Move string, player1ID uuid.UUID, player2Move string
 	return "player2", player2ID
 }
 
-func saveGameResultToDB(player1 uuid.UUID, player2 uuid.UUID, room Room) {
+func SaveGameResultToDB(player1 uuid.UUID, player2 uuid.UUID, room Room) {
 	game := models.Games{
 		Player1:       player1,
 		Player2:       player2,

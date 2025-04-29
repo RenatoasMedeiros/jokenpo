@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -39,7 +40,84 @@ func (r *Room) Run() {
 						Body: "",
 					}
 					r.Broadcast <- startMsg
+
+					//On the start of the game set the countdown
+					go func(r *Room) {
+						// Send countdown
+						for i := 10; i > 0; i-- {
+							r.Broadcast <- Message{
+								Type: "countdown",
+								Body: fmt.Sprintf("%ds", i),
+							}
+							time.Sleep(1 * time.Second)
+						}
+
+						r.Broadcast <- Message{
+							Type: "countdown",
+							Body: "Time's up!",
+						}
+
+						// Decide outcome based on how many moves were made
+						moveCount := len(r.Moves)
+						if moveCount == 0 {
+							r.Broadcast <- Message{
+								Type: "gameover",
+								Body: "draw (no one play)",
+							}
+							return
+						}
+
+						if moveCount == 1 {
+							for playerID := range r.Moves {
+								r.Broadcast <- Message{
+									Type: "gameover",
+									Body: fmt.Sprintf("%s wins (opponent didn't play)", playerID),
+								}
+								return
+							}
+						}
+
+						if moveCount == 2 {
+							var p1ID, p2ID uuid.UUID
+							var p1Move, p2Move string
+							i := 0
+							for id, move := range r.Moves {
+								if i == 0 {
+									p1ID = id
+									p1Move = move
+								} else {
+									p2ID = id
+									p2Move = move
+								}
+								i++
+							}
+
+							winnerLabel, winnerID := DetermineWinner(p1Move, p1ID, p2Move, p2ID)
+							var resultBody string
+							if winnerLabel == "draw" {
+								resultBody = "draw"
+							} else {
+								resultBody = fmt.Sprintf("winner: %s", winnerID.String())
+							}
+
+							r.Broadcast <- Message{
+								Type: "gameover",
+								Body: resultBody,
+							}
+
+							SaveGameResultToDB(p1ID, p2ID, *r)
+
+							for client := range r.Clients {
+								r.Unregister <- client
+								client.Conn.Close()
+							}
+
+							delete(Rooms, r.ID)
+							fmt.Println("Room closed and deleted:", r.ID)
+						}
+					}(r)
 				}
+
 			}
 
 		case Client := <-r.Unregister:

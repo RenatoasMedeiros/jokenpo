@@ -60,6 +60,7 @@ func (c *Client) ReadPump() {
 			// Now you can safely use:
 			fmt.Println("Move:", movePayload.Move)
 			fmt.Println("Game ID:", movePayload.GameID)
+			fmt.Println("Sender:", msg.Sender)
 			c.Room.Moves[uuid.MustParse(msg.Sender)] = movePayload.Move
 			fmt.Println("MOVE DETECTED - c.Room.Moves", c.Room.Moves)
 
@@ -84,14 +85,24 @@ func (c *Client) ReadPump() {
 				}
 
 				// Calculate winner
-				winner := determineWinner(playerChoices[0], playerChoices[1])
+				winner, winnerId := determineWinner(playerChoices[0], player1ID, playerChoices[1], player2ID)
 				fmt.Println("WINNER", winner)
-				// Broadcast winner
-				resultMsg := Message{
-					Type: "result",
-					Body: winner, // "player1", "player2" or "draw"
+
+				if winner != "draw" {
+					// Broadcast winner
+					resultMsg := Message{
+						Type: "result",
+						Body: winnerId.String(),
+					}
+					c.Room.Broadcast <- resultMsg
+				} else {
+					// Broadcast winner
+					resultMsg := Message{
+						Type: "result",
+						Body: winner,
+					}
+					c.Room.Broadcast <- resultMsg
 				}
-				c.Room.Broadcast <- resultMsg
 
 				// Save into DB (optional)
 				saveGameResultToDB(player1ID, player2ID, *c.Room)
@@ -102,42 +113,49 @@ func (c *Client) ReadPump() {
 
 // constantly listens if the server wants to send something to the client.
 func (c *Client) WritePump() {
-	defer c.Conn.Close()
+	fmt.Println("WritePump started for client", c.ID)
+	defer func() {
+		fmt.Println("Closing WritePump for client", c.ID)
+		c.Conn.Close()
+	}()
 	for {
 		select {
 		case msg, ok := <-c.Send:
 			if !ok {
-				// Channel closed
+				fmt.Println("Channel closed for client", c.ID)
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			c.Conn.WriteJSON(msg)
+			fmt.Println("Sending message to client", c.ID, ":", msg)
+			err := c.Conn.WriteJSON(msg)
+			if err != nil {
+				fmt.Println("Write error:", err)
+				return
+			}
 		}
 	}
 }
 
-func determineWinner(player1Move string, player2Move string) string {
+func determineWinner(player1Move string, player1ID uuid.UUID, player2Move string, player2ID uuid.UUID) (string, uuid.UUID) {
+	if player1Move == player2Move {
+		return "draw", uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
+	}
+
 	switch player1Move {
 	case "rock":
 		if player2Move == "scissors" {
-			return "player1"
-		} else {
-			return "player2"
+			return "player1", player1ID
 		}
 	case "paper":
 		if player2Move == "rock" {
-			return "player1"
-		} else {
-			return "player2"
+			return "player1", player1ID
 		}
 	case "scissors":
 		if player2Move == "paper" {
-			return "player1"
-		} else {
-			return "player2"
+			return "player1", player1ID
 		}
 	}
-	return "draw"
+	return "player2", player2ID
 }
 
 func saveGameResultToDB(player1 uuid.UUID, player2 uuid.UUID, room Room) {

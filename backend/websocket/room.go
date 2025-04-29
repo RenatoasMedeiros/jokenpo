@@ -30,6 +30,16 @@ func (r *Room) Run() {
 				numClients++
 				fmt.Println("Register Client:", Client)
 				fmt.Println("Total of Clients", numClients)
+
+				if len(r.Clients) == 2 {
+					fmt.Println("Room has 2 players, broadcasting start")
+
+					startMsg := Message{
+						Type: "start",
+						Body: "",
+					}
+					r.Broadcast <- startMsg
+				}
 			}
 
 		case Client := <-r.Unregister:

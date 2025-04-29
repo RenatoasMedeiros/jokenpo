@@ -24,7 +24,7 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 		Clients: make(map[*websocket.Client]bool),
 		//We use channels to protect from race conditions!
-		Broadcast:  make(chan websocket.Message),
+		Broadcast:  make(chan websocket.Message, 10), //ADDING A BUFFER HERE
 		Register:   make(chan *websocket.Client),
 		Unregister: make(chan *websocket.Client),
 		Moves:      make(map[uuid.UUID]string),
@@ -111,11 +111,23 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		ID:   playerID,
 		Conn: conn,
 		Room: room,
-		Send: make(chan websocket.Message),
+		Send: make(chan websocket.Message, 10), //buffered channel, up to 10 messages
 	}
 
 	//Actually register the client on the room
 	room.Register <- client
+
+	// if len(room.Clients) == 2 {
+	// 	fmt.Println("Room has 2 players, broadcasting start")
+
+	// 	startMsg := websocket.Message{
+	// 		Type: "start",
+	// 		Body: "",
+	// 	}
+	// 	room.Broadcast <- startMsg
+	// } else {
+	// 	fmt.Println("Not enough players to start. Current:", len(room.Clients))
+	// }
 
 	go client.ReadPump()
 	go client.WritePump()

@@ -49,8 +49,8 @@ func GetStatisticsFromDB(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		topPlayers = append(topPlayers, ps)
-		fmt.Println("statistics - PlayerStats: ", ps)
 	}
+	fmt.Println("statistics - topPlayers: ", topPlayers)
 
 	// --- 2. Move Usage Stats ---
 	moveUsageQuery := `
@@ -86,7 +86,7 @@ func GetStatisticsFromDB(w http.ResponseWriter, r *http.Request) {
 	for move, count := range moveCounts {
 		movePercent[move] = (float64(count) / float64(totalMoves)) * 100
 	}
-
+	fmt.Println("Move Percent: ", movePercent)
 	// Combined Statistics
 	stats := StatisticsResponse{
 		TopPlayers:     topPlayers,

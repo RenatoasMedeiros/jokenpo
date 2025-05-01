@@ -59,63 +59,59 @@ func (r *Room) Run() {
 
 						// Decide outcome based on how many moves were made
 						moveCount := len(r.Moves)
+
+						// Default values
+						var p1ID, p2ID uuid.UUID
+						var p1Move, p2Move string
+						var winner uuid.UUID
+
+						i := 0
+						for id, move := range r.Moves {
+							if i == 0 {
+								p1ID = id
+								p1Move = move
+							} else {
+								p2ID = id
+								p2Move = move
+							}
+							i++
+						}
+
+						var resultBody string
+
 						if moveCount == 0 {
-							r.Broadcast <- Message{
-								Type: "gameover",
-								Body: "draw (no one play)",
-							}
-							return
-						}
-
-						if moveCount == 1 {
-							for playerID := range r.Moves {
-								r.Broadcast <- Message{
-									Type: "gameover",
-									Body: fmt.Sprintf("%s wins (opponent didn't play)", playerID),
-								}
-								return
-							}
-						}
-
-						if moveCount == 2 {
-							var p1ID, p2ID uuid.UUID
-							var p1Move, p2Move string
-							i := 0
-							for id, move := range r.Moves {
-								if i == 0 {
-									p1ID = id
-									p1Move = move
-								} else {
-									p2ID = id
-									p2Move = move
-								}
-								i++
-							}
-
-							winnerLabel, winnerID := DetermineWinner(p1Move, p1ID, p2Move, p2ID)
-							var resultBody string
+							resultBody = "draw (no one played)"
+						} else if moveCount == 1 {
+							resultBody = fmt.Sprintf("%s wins (opponent didn't play)", p1ID)
+							winner = p1ID
+						} else if moveCount == 2 {
+							winnerLabel, winID := DetermineWinner(p1Move, p1ID, p2Move, p2ID)
 							if winnerLabel == "draw" {
 								resultBody = "draw"
 							} else {
-								resultBody = fmt.Sprintf("winner: %s", winnerID.String())
+								resultBody = fmt.Sprintf("winner: %s", winID)
+								winner = winID
 							}
-
-							r.Broadcast <- Message{
-								Type: "gameover",
-								Body: resultBody,
-							}
-
-							SaveGameResultToDB(p1ID, p2ID, *r)
-
-							for client := range r.Clients {
-								r.Unregister <- client
-								client.Conn.Close()
-							}
-
-							delete(Rooms, r.ID)
-							fmt.Println("Room closed and deleted:", r.ID)
 						}
+
+						// Broadcast gameover message
+						r.Broadcast <- Message{
+							Type: "gameover",
+							Body: resultBody,
+						}
+
+						// Save game to DB even in edge cases
+						SaveGameResultToDB(p1ID, p2ID, p1Move, p2Move, winner)
+
+						// Close room
+						for client := range r.Clients {
+							r.Unregister <- client
+							client.Conn.Close()
+						}
+						delete(Rooms, r.ID)
+						fmt.Println("Room closed and deleted:", r.ID)
 					}(r)
+
 				}
 
 			}

@@ -38,7 +38,7 @@ export function createRoom() {
   return api.post<{ room_id: string }>('/room')
 }
 
-//TODO (on backend api)
+// TODO (on backend api)
 export function getRooms() {
   return api.get<{ room_id: string }[]>('/rooms')
 }

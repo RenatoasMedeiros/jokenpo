@@ -157,23 +157,22 @@ func DetermineWinner(player1Move string, player1ID uuid.UUID, player2Move string
 	return "player2", player2ID
 }
 
-func SaveGameResultToDB(player1 uuid.UUID, player2 uuid.UUID, room Room) {
+func SaveGameResultToDB(player1, player2 uuid.UUID, move1, move2 string, winner uuid.UUID) {
 	game := models.Games{
 		Player1:       player1,
 		Player2:       player2,
-		Player1Choice: room.Moves[player1],
-		Player2Choice: room.Moves[player2],
+		Player1Choice: move1,
+		Player2Choice: move2,
+		Winner:        winner,
 	}
 
 	db := database.GetDB()
-
 	query := `
-		INSERT INTO games (id, player_1, player_2, player_1_choice, player_2_choice, winner) VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO games (id, player_1, player_2, player_1_choice, player_2_choice, winner)
+		VALUES ($1, $2, $3, $4, $5, $6)
 	`
-	_, err := db.Exec(query, room.ID, game.Player1, game.Player2, game.Player1Choice, game.Player2Choice, game.Winner)
+	_, err := db.Exec(query, uuid.New(), game.Player1, game.Player2, game.Player1Choice, game.Player2Choice, game.Winner)
 	if err != nil {
-		// http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
-		fmt.Errorf("Error on the database, error: " + err.Error())
-		return
+		fmt.Println("Error saving game result:", err)
 	}
 }

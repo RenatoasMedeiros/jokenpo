@@ -1,3 +1,5 @@
+<!--NOT USING THIS ANYMORE I BELIVE-->
+
 <template>
   <div>
     <h2>Game Room: {{ roomId }}</h2>
@@ -34,7 +36,11 @@ export default {
     let socket: WebSocket
 
     onMounted(() => {
-      socket = new WebSocket(`ws://localhost:8080/join/${props.roomId}`)
+      let BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
+      BACKEND_URL = BACKEND_URL.replace("http://", "")
+      console.log("BACKEND_URL:", BACKEND_URL)
+      socket = new WebSocket(`wss://${BACKEND_URL}/join/${props.roomId}`);
       socket.onopen = () => {
         messages.value.push('Connected to room')
         // send join message

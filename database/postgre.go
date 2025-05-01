@@ -28,6 +28,7 @@ func InitDB() {
 		os.Getenv("DB_NAME"),
 		os.Getenv("DB_SSL"),
 	)
+	fmt.Println("DB_HOST from env:", os.Getenv("DB_HOST"))
 
 	fmt.Println("Waiting for the database Startup")
 

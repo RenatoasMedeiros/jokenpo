@@ -3,6 +3,7 @@ package websocket
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -18,9 +19,8 @@ var Upgrader = websocket.Upgrader{
 		origin := r.Header.Get("Origin")
 		fmt.Println("WebSocket handshake Origin:", origin) // DEBUG
 
-		if origin == "http://localhost:5173" ||
-			origin == "http://localhost:3000" ||
-			origin == "http://localhost:8080" {
+		if origin == os.Getenv("FRONTEND_URL") ||
+			origin == "http://"+os.Getenv("BACKEND_ADDR")+os.Getenv("BACKEND_PORT") { //TODO CHANGE TO HTTPS FOR PRODUCTION
 			return true
 		}
 		return false

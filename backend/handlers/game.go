@@ -65,6 +65,7 @@ func JoinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 		return
 	}
+
 	room, ok := websocket.Rooms[uuid.MustParse(gameID)]
 	if !ok {
 		http.Error(w, "Room not found", http.StatusNotFound)

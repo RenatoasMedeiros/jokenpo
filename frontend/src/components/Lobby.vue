@@ -10,20 +10,27 @@
 
     <!-- Join Room -->
     <RoomJoin @room-joined="emitRoomJoined" />
+
+    <!-- Divider -->
+    <div class="border-t border-gray-700 w-full my-6"></div>
+
+    <!-- 🏆 Ranking Section -->
+    <Ranking />
   </div>
 </template>
 
 <script lang="ts">
 import RoomCreator from './RoomCreator.vue'
 import RoomJoin from './RoomJoin.vue'
+import Ranking from './Ranking.vue'
 import { useRouter } from 'vue-router'
 import { defineComponent } from 'vue'
 
 import { inject } from 'vue'
 
 export default defineComponent({
-  components: { RoomCreator, RoomJoin },
-  emits: ['room-created', 'room-joined'], // ADD THIS
+  components: { RoomCreator, RoomJoin, Ranking },
+  emits: ['room-created', 'room-joined'],
   setup(_, { emit }) {
     function emitRoomCreated(roomId: string) {
       emit('room-created', roomId)

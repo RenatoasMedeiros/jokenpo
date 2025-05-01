@@ -29,7 +29,9 @@ export default {
     const webSocket = ref<WebSocket>()
 
     onMounted(() => {
-      const ws = new WebSocket(`ws://localhost:8080/join/${props.roomId}`) //TODO Put this on a .env xD (and it cannot be localhost btw)
+      const backendURL = import.meta.env.VITE_BACKEND_URL.replace(/^https?:\/\//, "")
+      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws"
+      const ws = new WebSocket(`${wsProtocol}://${backendURL}/join/${props.roomId}`)
 
       ws.onopen = () => {
         const joinMessage = {
@@ -37,17 +39,38 @@ export default {
           body: JSON.stringify({ game_id: props.roomId }),
           sender: localStorage.getItem("playerId"),
         }
+        console.log("joinMessage: ", joinMessage)
         ws.send(JSON.stringify(joinMessage))
       }
 
       ws.onmessage = (e) => {
-        const message = JSON.parse(e.data)
-        console.log('WebSocket Message:', message)
+      const message = JSON.parse(e.data)
+      console.log('WebSocket Message:', message)
 
-        if (message.type === 'start') {
-          emit('game-start', { ws })
-        }
+      if (message.type === 'start') {
+        emit('game-start', { ws })
       }
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error ❌', err)
+      }
+
+      ws.onclose = () => {
+        console.log('WebSocket closed 🚪')
+      }
+
+      if (message.type === 'players_ready') {
+        console.log('Two players are in the room, sending start signal...')
+
+        const startMessage = {
+          type: "start",
+          body: "",
+          sender: props.playerId,
+        }
+        ws.send(JSON.stringify(startMessage))
+      }
+    }
+
 
       ws.onerror = (err) => {
         console.error('WebSocket error', err)

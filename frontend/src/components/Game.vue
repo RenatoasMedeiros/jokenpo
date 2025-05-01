@@ -2,26 +2,47 @@
   <div class="h-screen flex flex-col justify-center items-center bg-gray-900 text-white animate__animated animate__fadeIn">
     <h1 class="text-4xl font-bold mb-8">Choose Your Move!</h1>
 
-    <div class="flex space-x-8">
+    <!-- Countdown Timer -->
+    <div v-if="countdown !== null" class="text-2xl mb-4 animate__animated animate__fadeInDown">
+      ⏱️ Time Left: {{ countdown }}
+    </div>
+
+    <!-- Move Buttons -->
+    <div class="flex space-x-8" :class="{ 'opacity-50 pointer-events-none': buttonsDisabled }">
       <button
         v-for="move in moves"
         :key="move.name"
         @click="sendMove(move.name)"
         class="move-btn"
+        :disabled="buttonsDisabled"
       >
         <div class="text-6xl">{{ move.icon }}</div>
         <div class="mt-2 text-xl">{{ move.name }}</div>
       </button>
     </div>
 
-    <div v-if="result" class="mt-10 text-3xl font-bold animate__animated animate__bounceIn">
+    <!-- Result Message -->
+    <div v-if="resultMessage" class="mt-10 text-3xl font-bold animate__animated animate__bounceIn">
       {{ resultMessage }}
     </div>
+
+    <!-- Play Again Button -->
+    <button
+      v-if="gameOver"
+      @click="createNewRoom"
+      class="mt-8 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-xl animate__animated animate__fadeInUp"
+    >
+      🔄 Play Again
+    </button>
+
+    <!-- Confetti Canvas -->
+    <canvas v-if="showConfetti" ref="confettiCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
   </div>
 </template>
 
 <script lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
+import confetti from 'canvas-confetti'
 
 export default {
   props: {
@@ -45,36 +66,80 @@ export default {
       { name: "scissors", icon: "✂️" }
     ]
 
-    const result = ref<string | null>(null)
+    const countdown = ref<string | null>(null)
+    const resultMessage = ref<string | null>(null)
+    const buttonsDisabled = ref(false)
+    const gameOver = ref(false)
+    const showConfetti = ref(false)
+    const confettiCanvas = ref<HTMLCanvasElement | null>(null)
 
     function sendMove(move: string) {
+      if (buttonsDisabled.value) return
       const message = {
         type: "move",
         body: JSON.stringify({
           game_id: props.roomId,
           move: move
         }),
-        sender: props.userId
+        sender: localStorage.getItem("playerId")
       }
       props.webSocket.send(JSON.stringify(message))
+    }
+
+    function launchConfetti() {
+      if (!confettiCanvas.value) return
+      const myConfetti = confetti.create(confettiCanvas.value, { resize: true, useWorker: true })
+      myConfetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 }
+      })
+    }
+
+    function createNewRoom() {
+      window.location.reload()
     }
 
     props.webSocket.onmessage = (e) => {
       const message = JSON.parse(e.data)
       console.log('WebSocket Game Message:', message)
 
-      if (message.type === 'result') {
-        if (message.body === 'player1') {
-          result.value = '🏆 You won!'
-        } else if (message.body === 'player2') {
-          result.value = '😔 You lost!'
-        } else if (message.body === 'draw') {
-          result.value = '🤝 It\'s a draw!'
-        }
+      switch (message.type) {
+        case 'countdown':
+          countdown.value = message.body
+          break
+        case 'gameover':
+          gameOver.value = true
+          buttonsDisabled.value = true
+          countdown.value = null
+
+          const winnerId = message.body.replace("winner: ", "")
+          const currentId = localStorage.getItem("playerId")
+
+          if (message.body === "draw") {
+            resultMessage.value = "🤝 It's a draw!"
+          } else if (winnerId === currentId) {
+            resultMessage.value = "🏆 You won!"
+            showConfetti.value = true
+            nextTick(() => launchConfetti())
+          } else {
+            resultMessage.value = "😔 You lost!"
+          }
+          break
       }
     }
 
-    return { moves, sendMove, result, resultMessage: result }
+    return {
+      moves,
+      countdown,
+      resultMessage,
+      sendMove,
+      buttonsDisabled,
+      gameOver,
+      createNewRoom,
+      showConfetti,
+      confettiCanvas
+    }
   }
 }
 </script>

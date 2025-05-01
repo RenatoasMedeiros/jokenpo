@@ -12,10 +12,10 @@ WORKDIR /app/backend
 RUN go mod tidy
 
 #create the executable (main)
-RUN go build -o main .
+RUN go build -o main_backend .
 
 #I believe that i dont need this since i already have it on docker compose
 #EXPOSE 8080
-RUN chmod +x main
+RUN chmod +x main_backend
 
-CMD [ "./main" ]
+CMD [ "./main_backend" ]

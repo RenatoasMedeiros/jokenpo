@@ -11,8 +11,8 @@ func main() {
 
 	app := &api{
 		config: config{
-			addr: ":" + os.Getenv("BACKEND_PORT"),
-			//addr: ":8080",
+			addr: os.Getenv("BACKEND_ADDR"),
+			port: ":" + os.Getenv("BACKEND_PORT"),
 		},
 	}
 	app.run()

@@ -21,17 +21,18 @@ func Authenticate(next http.Handler) http.Handler {
 			"/auth/register",
 			"/auth/login",
 			"/join/", //TODO find a way to fix this
+			"/health",
 		}
 
+		fmt.Println("Verifying path: ", r.URL.Path)
 		for _, path := range publicPaths {
-			fmt.Println("Verifying path")
 			//Verifying if the url have someting from the publicPaths
 			if strings.HasPrefix(r.URL.Path, path) {
 				next.ServeHTTP(w, r)
 				return
 			}
 		}
-		fmt.Println("Valid Path")
+		fmt.Println("Path that needs token")
 		// Extract token from the Authorization header
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {

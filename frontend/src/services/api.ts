@@ -4,7 +4,13 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
 })
 
+const statisticsApi = axios.create({
+  baseURL: import.meta.env.VITE_STATISTICS_URL,
+})
+
 let token: string | null = null
+console.log("VITE_BACKEND_URL:", import.meta.env.VITE_BACKEND_URL)
+console.log("VITE_STATISTICS_URL:", import.meta.env.VITE_STATISTICS_URL)
 
 // Check if there's a token in localStorage and set it in axios headers
 const savedToken = localStorage.getItem('authToken')
@@ -37,3 +43,7 @@ export function getRooms() {
   return api.get<{ room_id: string }[]>('/rooms')
 }
 
+
+export function getRanking() {
+  return statisticsApi.get<{ username: string; wins: number }[]>('/statistics/ranking')
+}

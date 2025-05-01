@@ -1,40 +1,13 @@
 services:
-  # pgsql:
-  #   image: postgres
-  #   container_name: postgres_jokenpo
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     POSTGRES_USER: ${DB_USER}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #     POSTGRES_DB: ${DB_NAME}
-  #   ports:
-  #     - ${DB_PORT}:${DB_PORT}
-  #   dns:
-  #     - 8.8.8.8
-  #     - 8.8.4.4
-    # volumes:
-    #   # copy the scnema.sql script to entrypoint (any .sql script inside the entrypoint is executred on first run)
-    #   - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    #   # copy the sql script to fill tables - when you have it!
-    #   #- ./database/fill_tables.sql:/docker-entrypoint-initdb.d/fill_tables.sql
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USER}'"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  
   backend:
     build:
       # this need to be like this, to have access to both backend and database and not only "./backend"
       context: .
       dockerfile: backend/Dockerfile
     image: 2240596.azurecr.io/jokenpo-backend
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    #network_mode: "host" #just for linux
+    # dns:
+    #   - 8.8.8.8
+    #   - 8.8.4.4
     env_file:
       - .env
     ports:
@@ -46,6 +19,48 @@ services:
       DB_PASSWORD: "${DB_PASSWORD}"
       DB_NAME: "${DB_NAME}"
       DB_SSL: "${DB_SSL}"
-    # depends_on:
-    #   pgsql:
-    #     condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${BACKEND_ADDR}:${BACKEND_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  statistics:
+    build:
+      # this need to be like this, to have access to both backend and database and not only "./backend"
+      context: .
+      dockerfile: statistics/Dockerfile
+    image: 2240596.azurecr.io/jokenpo-statistics
+    # dns:
+    #   - 8.8.8.8
+    #   - 8.8.4.4
+    env_file:
+      - .env
+    ports:
+      - ${STATISTICS_PORT}:${STATISTICS_PORT}
+    environment:
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DB_SSL: "${DB_SSL}"
+    depends_on:
+      backend:
+        condition: service_healthy
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+      # args:
+      #   VITE_BACKEND_URL: "${VITE_BACKEND_URL}"
+      #   VITE_STATISTICS_URL: "${VITE_STATISTICS_URL}"
+    image: 2240596.azurecr.io/jokenpo-frontend
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    environment:
+      VITE_BACKEND_URL: "${VITE_BACKEND_URL}"
+      VITE_STATISTICS_URL: "${VITE_STATISTICS_URL}"
+    depends_on:
+      backend:
+        condition: service_healthy

@@ -1,4 +1,4 @@
-# Jokenpo Realm 👑 - Real-time Rock Paper Scissors
+# Jokenpo - Real-time Rock Paper Scissors
 
 Jokenpo Realm is a web-based, real-time multiplayer implementation of the classic Rock Paper Scissors game (Jokenpo).
 

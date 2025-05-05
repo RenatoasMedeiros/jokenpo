@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="space-y-4 max-w-md mx-auto p-6 rounded-lg bg-gray-800 shadow-lg animate__animated animate__fadeIn">
     <h1 class="text-2xl font-bold text-white text-center mb-4">Create a Game Room</h1>
     <button
@@ -9,6 +9,20 @@
     </button>
     <div v-if="roomId" class="mt-4 p-4 bg-gray-700 text-white rounded-lg text-center animate__animated animate__fadeIn">
       🎮 Room Created! <br> Room ID: <span class="font-mono text-green-400">{{ roomId }}</span>
+    </div>
+  </div>
+</template> -->
+
+<template>
+  <div class="room-creator-container space-y-4 animate__animated animate__fadeIn">
+    <h2 class="lobby-section-title">Create a Game Room</h2>
+    <button
+      @click="create"
+      class="lobby-button create" >
+      Create Room
+    </button>
+    <div v-if="roomId" class="room-id-display animate__animated animate__fadeIn">
+      🎮 Room Created! <br> Room ID: <span>{{ roomId }}</span>
     </div>
   </div>
 </template>

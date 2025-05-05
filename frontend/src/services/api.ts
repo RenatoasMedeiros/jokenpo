@@ -27,7 +27,7 @@ export function setToken(t: string) {
 }
 
 export function register(username: string, password: string) {
-  return api.post('/auth/register', { username, password })
+  return api.post<{ token: string, playerId: string }>('/auth/register', { username, password })
 }
 
 export function login(username: string, password: string) {

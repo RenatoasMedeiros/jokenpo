@@ -47,10 +47,40 @@ func CreatePlayerAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error on the database, error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("And here Arrived here")
+
+	// Create a JWT token with 24h of duration!
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &jwt.StandardClaims{
+		ExpiresAt: expirationTime.Unix(),
+		Subject:   player.ID.String(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with the secret key
+	tokenString, err := token.SignedString(JWT_KET)
+	if err != nil {
+		http.Error(w, "Could not create the token", http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Token    string `json:"token"`
+		PlayerId string `json:"playerId"`
+	}{
+		Token:    tokenString,
+		PlayerId: player.ID.String(),
+	}
+
+	// Marshal the struct into JSON
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(player.ID)
+	w.Write(jsonData)
 }
 
 func LoginPlayer(w http.ResponseWriter, r *http.Request) {

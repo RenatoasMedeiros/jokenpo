@@ -10,9 +10,10 @@ import (
 )
 
 type PlayerStats struct {
-	PlayerID string `json:"player_id"`
-	Username string `json:"username"`
-	Wins     int    `json:"wins"`
+	PlayerID    string `json:"player_id"`
+	Username    string `json:"username"`
+	Wins        int    `json:"wins"`
+	GamesPlayed int    `json:"games_played"`
 }
 
 type StatisticsResponse struct {
@@ -26,13 +27,32 @@ func GetStatisticsFromDB(w http.ResponseWriter, r *http.Request) {
 
 	// --- 1. Top 20 Players by Wins ---
 	topPlayersQuery := `
-		SELECT p.id, p.username, COUNT(g.winner) as wins
-		FROM games g
-		JOIN players p ON g.winner = p.id
-		GROUP BY p.id, p.username
-		ORDER BY wins DESC
-		LIMIT 20
-	`
+        WITH PlayerGameCounts AS (
+            SELECT
+                p.id,
+                p.username,
+                COUNT(g.id) AS games_played -- Count total games participated in
+            FROM players p
+            LEFT JOIN games g ON p.id = g.player_1 OR p.id = g.player_2
+            GROUP BY p.id, p.username
+        ), PlayerWinCounts AS (
+            SELECT
+                p.id,
+                COUNT(g.winner) as wins -- Count games won
+            FROM players p
+            LEFT JOIN games g ON g.winner = p.id
+            GROUP BY p.id
+        )
+        SELECT
+            pgc.id,
+            pgc.username,
+            COALESCE(pwc.wins, 0) as wins, -- Use COALESCE for players with 0 wins
+            pgc.games_played
+        FROM PlayerGameCounts pgc
+        LEFT JOIN PlayerWinCounts pwc ON pgc.id = pwc.id
+        ORDER BY wins DESC, games_played DESC -- Define order (e.g., wins first, then games played)
+        LIMIT 20;
+    `
 	rows, err := db.QueryContext(ctx, topPlayersQuery)
 	if err != nil {
 		log.Println("DB error (top players):", err)
@@ -44,11 +64,14 @@ func GetStatisticsFromDB(w http.ResponseWriter, r *http.Request) {
 	var topPlayers []PlayerStats
 	for rows.Next() {
 		var ps PlayerStats
-		if err := rows.Scan(&ps.PlayerID, &ps.Username, &ps.Wins); err != nil {
+		if err := rows.Scan(&ps.PlayerID, &ps.Username, &ps.Wins, &ps.GamesPlayed); err != nil {
 			log.Println("Scan error (top players):", err)
 			continue
 		}
 		topPlayers = append(topPlayers, ps)
+	}
+	if err := rows.Err(); err != nil {
+		log.Println("Error iterating top players rows:", err)
 	}
 	fmt.Println("statistics - topPlayers: ", topPlayers)
 
@@ -83,8 +106,10 @@ func GetStatisticsFromDB(w http.ResponseWriter, r *http.Request) {
 	}
 
 	movePercent := make(map[string]float64)
-	for move, count := range moveCounts {
-		movePercent[move] = (float64(count) / float64(totalMoves)) * 100
+	if totalMoves > 0 { // Prevent division by zero!
+		for move, count := range moveCounts {
+			movePercent[move] = (float64(count) / float64(totalMoves)) * 100
+		}
 	}
 	fmt.Println("Move Percent: ", movePercent)
 	// Combined Statistics

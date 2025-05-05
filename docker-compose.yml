@@ -21,9 +21,9 @@ services:
       DB_SSL: "${DB_SSL}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://${BACKEND_ADDR}:${BACKEND_PORT}/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      interval: 20s
+      timeout: 10s
+      retries: 5
 
   statistics:
     build:

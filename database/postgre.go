@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -36,17 +37,37 @@ func InitDB() {
 	conn.RawQuery = "sslmode=verify-ca;sslrootcert=ca.pem"
 
 	var err error
-	db, err = sql.Open("postgres", conn.String())
+	maxRetries := 5
+	backoff := time.Second
 
-	if err != nil {
-		log.Fatal(err)
+	for i := 1; i <= maxRetries; i++ {
+		fmt.Printf("Attempt %d: Connecting to database...\n", i)
+		db, err = sql.Open("postgres", conn.String())
+		if err != nil {
+			log.Printf("Error opening DB: %v", err)
+		} else {
+			err = db.Ping()
+			if err == nil {
+				fmt.Println("Database connection established.")
+				break
+			}
+			log.Printf("Ping failed: %v", err)
+		}
+
+		if i == maxRetries {
+			log.Fatalf("Could not connect to database after %d attempts", maxRetries)
+		}
+
+		waitTime := backoff * time.Duration(i)
+		fmt.Printf("Waiting %s before retrying...\n", waitTime)
+		time.Sleep(waitTime)
 	}
-	// defer db.Close()
 
 	rows, err := db.Query("SELECT version()")
 	if err != nil {
 		panic(err)
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var result string
